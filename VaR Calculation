@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.stats import norm
 from math import log, sqrt, exp
 
-# 假设Black-Scholes期权定价模型函数
+# 定义Black-Scholes期权定价模型函数
 def black_scholes_call_price(S, K, T, r, sigma):
     d1 = (log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * sqrt(T))
     d2 = d1 - sigma * sqrt(T)
@@ -21,7 +21,7 @@ returns = np.diff(prices) / prices[:-1]
 
 # 模拟未来价格路径
 S0 = prices[-1]
-simulated_prices = S0 * (1 + np.random.choice(returns, size=10000))
+simulated_prices = S0 * (1 + np.random.choice(returns, size=10000)) ### 标的资产价格
 
 # 期权参数
 K = 100  # 执行价格
@@ -29,16 +29,82 @@ T = 30 / 365  # 到期时间
 r = 0.01  # 无风险利率
 sigma = 0.2  # 隐含波动率
 
-# 当前期权价格
-C0 = black_scholes_call_price(S0, K, T, r, sigma)
-
 # 计算期权价格变化
+C0 = black_scholes_call_price(S0, K, T, r, sigma)
 simulated_call_prices = [black_scholes_call_price(S, K, T, r, sigma) for S in simulated_prices]
 price_changes = np.array(simulated_call_prices) - C0
 
 # 计算VaR值
 var_95 = np.percentile(price_changes, 5)
 var_99 = np.percentile(price_changes, 1)
+
+print(f"95%置信水平的VaR值: {var_95}")
+print(f"99%置信水平的VaR值: {var_99}")
+
+
+
+
+##### Option's VaR 蒙特卡洛模拟法 #####
+
+import numpy as np
+from scipy.stats import norm
+from math import exp, sqrt, log
+
+# 定义Black-Scholes期权定价模型函数
+def black_scholes_call_price(S, K, T, r, sigma):
+    d1 = (log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * sqrt(T))
+    d2 = d1 - sigma * sqrt(T)
+    return S * norm.cdf(d1) - K * exp(-r * T) * norm.cdf(d2)
+
+# 期权参数
+S0 = 100  # 当前价格
+K = 100  # 执行价格
+T = 1  # 到期时间
+r = 0.05  # 无风险利率
+sigma = 0.2  # 波动率
+N = 10000  # 模拟路径数量
+
+# 蒙特卡洛模拟计算标的资产价格
+np.random.seed(0)
+ST = S0 * np.exp((r - 0.5 * sigma**2) * T + sigma * np.sqrt(T) * np.random.randn(N)) ###
+
+# 计算期权价格变化
+CT = [black_scholes_call_price(s, K, T, r, sigma) for s in ST]
+C0 = black_scholes_call_price(S0, K, T, r, sigma)
+price_changes = np.array(CT) - C0
+
+# 计算VaR
+var_95 = np.percentile(price_changes, 5)
+var_99 = np.percentile(price_changes, 1)
+
+print(f"95%置信水平的VaR值: {var_95}")
+print(f"99%置信水平的VaR值: {var_99}")
+
+
+
+
+##### Option's VaR Delta-Gamma法 #####
+
+import numpy as np
+
+# 假设期权的Delta和Gamma
+delta = 0.5
+gamma = 0.1
+S0 = 100  # 当前价格
+sigma = 0.2  # 波动率
+T = 1  # 到期时间
+N = 10000  # 模拟路径数量
+
+# 模拟标的资产价格变化
+np.random.seed(0)
+dS = S0 * sigma * np.sqrt(T) * np.random.randn(N) ###
+
+# 估计期权价格变化
+dC = delta * dS + 0.5 * gamma * dS**2
+
+# 计算VaR
+var_95 = np.percentile(dC, 5)
+var_99 = np.percentile(dC, 1)
 
 print(f"95%置信水平的VaR值: {var_95}")
 print(f"99%置信水平的VaR值: {var_99}")
