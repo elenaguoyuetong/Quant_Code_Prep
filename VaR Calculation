@@ -1,1 +1,45 @@
+##### Option's VaR 历史模拟法 #####
+
+import numpy as np
+import pandas as pd
+from scipy.stats import norm
+from math import log, sqrt, exp
+
+# 假设Black-Scholes期权定价模型函数
+def black_scholes_call_price(S, K, T, r, sigma):
+    d1 = (log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * sqrt(T))
+    d2 = d1 - sigma * sqrt(T)
+    call_price = S * norm.cdf(d1) - K * exp(-r * T) * norm.cdf(d2)
+    return call_price
+
+# 读取标的资产价格数据
+data = pd.read_csv('asset_prices.csv')
+prices = data['Close'].values
+
+# 计算每日收益率
+returns = np.diff(prices) / prices[:-1]
+
+# 模拟未来价格路径
+S0 = prices[-1]
+simulated_prices = S0 * (1 + np.random.choice(returns, size=10000))
+
+# 期权参数
+K = 100  # 执行价格
+T = 30 / 365  # 到期时间
+r = 0.01  # 无风险利率
+sigma = 0.2  # 隐含波动率
+
+# 当前期权价格
+C0 = black_scholes_call_price(S0, K, T, r, sigma)
+
+# 计算期权价格变化
+simulated_call_prices = [black_scholes_call_price(S, K, T, r, sigma) for S in simulated_prices]
+price_changes = np.array(simulated_call_prices) - C0
+
+# 计算VaR值
+var_95 = np.percentile(price_changes, 5)
+var_99 = np.percentile(price_changes, 1)
+
+print(f"95%置信水平的VaR值: {var_95}")
+print(f"99%置信水平的VaR值: {var_99}")
 
